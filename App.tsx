@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Layout, 
   Code, 
   BookOpen, 
   History, 
@@ -17,8 +16,8 @@ import {
   Laptop,
   AlertCircle
 } from 'lucide-react';
-import { GeminiWPBakeryService } from './services/geminiService';
-import { AppMode, GeneratedBlock, HistoryItem } from './types';
+import { GeminiWPBakeryService } from './services/geminiService.ts';
+import { AppMode, HistoryItem } from './types.ts';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.GENERATOR);
@@ -33,7 +32,13 @@ const App: React.FC = () => {
   useEffect(() => {
     geminiRef.current = new GeminiWPBakeryService();
     const saved = localStorage.getItem('wpbakery_history');
-    if (saved) setHistory(JSON.parse(saved));
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load history", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -54,8 +59,7 @@ const App: React.FC = () => {
     setInput('');
 
     try {
-      // Build conversation context from history for "learning"
-      const apiHistory = history.map(item => ({
+      const apiHistory = history.slice(0, 5).map(item => ({
         role: item.type === 'reference' ? 'user' as const : 'model' as const,
         parts: [{ text: item.type === 'reference' ? `REFERÊNCIA:\n${item.content}` : item.response || '' }]
       }));
@@ -73,7 +77,8 @@ const App: React.FC = () => {
       setHistory(prev => [newItem, ...prev]);
       setLastResponse(result);
     } catch (error) {
-      alert("Erro ao processar requisição. Verifique sua conexão ou API Key.");
+      console.error(error);
+      alert("Erro ao processar requisição. Verifique sua API Key no painel da Vercel.");
     } finally {
       setIsGenerating(false);
     }
@@ -92,7 +97,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <aside className="w-72 bg-slate-900 text-white flex flex-col border-r border-slate-800">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-2 mb-2">
@@ -103,7 +107,7 @@ const App: React.FC = () => {
               WPBakery <span className="text-blue-400">Pro</span>
             </h1>
           </div>
-          <p className="text-xs text-slate-400 font-medium">THE7 THEME EXPERT GENERATOR</p>
+          <p className="text-xs text-slate-400 font-medium uppercase tracking-tighter">THE7 EXPERT ENGINE</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -132,7 +136,7 @@ const App: React.FC = () => {
               <div className="bg-slate-800/50 rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-3">
                 <History size={16} className="text-slate-500" />
               </div>
-              <p className="text-xs text-slate-500">Nenhum histórico disponível</p>
+              <p className="text-xs text-slate-500 font-medium">Histórico vazio</p>
             </div>
           ) : (
             history.map(item => (
@@ -141,14 +145,14 @@ const App: React.FC = () => {
                   onClick={() => setLastResponse(item.response || null)}
                   className="w-full flex items-start gap-3 px-4 py-3 rounded-xl text-left text-xs text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-colors truncate"
                 >
-                  <div className="mt-0.5">
+                  <div className="mt-0.5 shrink-0">
                     {item.type === 'reference' ? <Database size={14} className="text-emerald-400" /> : <ChevronRight size={14} className="text-blue-400" />}
                   </div>
                   <span className="truncate pr-4">{item.content}</span>
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); deleteHistoryItem(item.id); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-1"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-1 transition-opacity"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -163,23 +167,21 @@ const App: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-slate-500 hover:text-red-400 transition-colors"
           >
             <Trash2 size={14} />
-            Limpar Histórico
+            Limpar tudo
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-4">
             <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider border border-blue-100">
-              Vercel Deployment Ready
+              Vercel Deployment Active
             </span>
             <div className="h-4 w-[1px] bg-gray-200"></div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
               <Laptop size={14} />
-              <span>Full Responsive Support</span>
+              <span>Full Responsive Engine</span>
             </div>
           </div>
           
@@ -188,18 +190,15 @@ const App: React.FC = () => {
               href="https://the7.io" 
               target="_blank" 
               rel="noreferrer" 
-              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
             >
               The7 Docs <ExternalLink size={12} />
             </a>
           </div>
         </header>
 
-        {/* Editor Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto bg-gray-50/30">
           <div className="max-w-5xl mx-auto p-8 space-y-8">
-            
-            {/* Context Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-xl shrink-0 ${mode === AppMode.GENERATOR ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -209,10 +208,10 @@ const App: React.FC = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-1">
                     {mode === AppMode.GENERATOR ? 'O que vamos construir hoje?' : 'Treinar Novo Padrão'}
                   </h2>
-                  <p className="text-sm text-gray-500 leading-relaxed">
+                  <p className="text-sm text-gray-500 leading-relaxed max-w-2xl">
                     {mode === AppMode.GENERATOR 
-                      ? 'Descreva a seção, hero ou componente que você precisa. Utilizarei shortcodes nativos do WPBakery + Ultimate Addons com o design system do The7.'
-                      : 'Cole um código de referência funcional (shortcode). Eu analisarei a estrutura, hierarquia e parâmetros para replicar o estilo nas futuras gerações.'}
+                      ? 'Descreva a seção que você precisa. Utilizarei shortcodes nativos do WPBakery + Ultimate Addons com o design system premium do The7.'
+                      : 'Cole um código de referência funcional. Analisarei a hierarquia e parâmetros para replicar o estilo nas próximas gerações.'}
                   </p>
                 </div>
               </div>
@@ -221,14 +220,14 @@ const App: React.FC = () => {
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={mode === AppMode.GENERATOR ? "Ex: Crie uma hero section premium com título, subtítulo e botão CTA..." : "[vc_row][vc_column]... Cole aqui seu código de referência"}
+                  placeholder={mode === AppMode.GENERATOR ? "Ex: Hero section moderna para SaaS com grid de benefícios e botão CTA gradiente..." : "[vc_row][vc_column]... Cole o shortcode aqui"}
                   className="w-full min-h-[140px] bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                 />
                 <div className="absolute bottom-4 right-4 flex items-center gap-2">
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating || !input.trim()}
-                    className="bg-slate-900 hover:bg-slate-800 disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all shadow-md active:scale-95"
+                    className="bg-slate-900 hover:bg-slate-800 disabled:bg-gray-200 text-white px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 disabled:shadow-none"
                   >
                     {isGenerating ? (
                       <>
@@ -246,18 +245,17 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Output Display */}
             {lastResponse && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
                     <Code size={18} className="text-blue-500" />
-                    Resultado da Geração
+                    Shortcode Gerado
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => handleCopy(lastResponse, 'last')}
-                      className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold transition-all border border-emerald-100"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-all border border-emerald-100 shadow-sm"
                     >
                       {copiedId === 'last' ? <Check size={14} /> : <Copy size={14} />}
                       {copiedId === 'last' ? 'Copiado!' : 'Copiar para WPBakery'}
@@ -265,29 +263,27 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-800 relative group">
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <div className="h-3 w-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                    <div className="h-3 w-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                    <div className="h-3 w-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                <div className="bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-800 relative">
+                  <div className="absolute top-4 left-4 flex gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-slate-700"></div>
+                    <div className="h-2.5 w-2.5 rounded-full bg-slate-700"></div>
+                    <div className="h-2.5 w-2.5 rounded-full bg-slate-700"></div>
                   </div>
-                  <pre className="p-8 text-xs font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[600px]">
+                  <pre className="p-8 pt-12 text-xs font-mono text-blue-300 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[600px] custom-scrollbar">
                     <code>{lastResponse}</code>
                   </pre>
                 </div>
 
                 <div className="flex items-start gap-3 bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
                   <AlertCircle size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 leading-relaxed font-medium">
-                    <strong className="block mb-1">Dica de Deploy:</strong>
-                    Cole este código diretamente no modo "Texto" do seu editor WPBakery. Se estiver utilizando um ambiente headless via Vercel, certifique-se de que os plugins The7 e WPBakery estejam ativos no WordPress de origem para o processamento correto dos shortcodes na API.
-                  </p>
+                  <div className="text-xs text-blue-800 leading-relaxed">
+                    <strong className="block mb-1 font-bold">Instrução de Uso:</strong>
+                    Cole este código no modo <strong>Texto</strong> do editor WPBakery. Todos os parâmetros foram otimizados para o design system do tema The7.
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* Bottom Spacer */}
-            <div className="h-20"></div>
+            <div className="h-10"></div>
           </div>
         </div>
       </main>
