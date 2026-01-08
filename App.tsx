@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const geminiRef = useRef<GeminiWPBakeryService | null>(null);
 
@@ -55,6 +56,7 @@ const App: React.FC = () => {
     if (!input.trim() || !geminiRef.current) return;
 
     setIsGenerating(true);
+    setErrorMsg(null);
     const currentInput = input;
     setInput('');
 
@@ -76,9 +78,11 @@ const App: React.FC = () => {
 
       setHistory(prev => [newItem, ...prev]);
       setLastResponse(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erro ao processar requisição. Verifique sua API Key no painel da Vercel.");
+      const msg = error.message || "Erro desconhecido ao processar requisição.";
+      setErrorMsg(msg);
+      alert(msg + "\n\nVerifique o console para mais detalhes.");
     } finally {
       setIsGenerating(false);
     }
@@ -199,6 +203,17 @@ const App: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto bg-gray-50/30">
           <div className="max-w-5xl mx-auto p-8 space-y-8">
+            
+            {errorMsg && (
+              <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <div className="text-xs text-red-800">
+                  <strong className="block font-bold mb-1">Erro Crítico de API</strong>
+                  {errorMsg} - Certifique-se de que a variável <code>API_KEY</code> está configurada corretamente na Vercel.
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-xl shrink-0 ${mode === AppMode.GENERATOR ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>

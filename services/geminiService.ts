@@ -23,7 +23,11 @@ export class GeminiWPBakeryService {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // A API_KEY deve vir exclusivamente de process.env.API_KEY
+    if (!process.env.API_KEY) {
+      console.error("WPBakery Pro Error: API_KEY não encontrada nas variáveis de ambiente. Verifique as configurações na Vercel.");
+    }
+    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
   async generateBlock(prompt: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []): Promise<string> {
@@ -37,15 +41,19 @@ export class GeminiWPBakeryService {
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
           temperature: 0.7,
-          // Removed thinkingBudget: 0 as gemini-3-pro-preview requires a positive budget or default thinking.
-          // Setting a healthy budget for complex code generation tasks.
           thinkingConfig: { thinkingBudget: 16384 }
         },
       });
 
       return response.text || '';
-    } catch (error) {
-      console.error("Gemini Error:", error);
+    } catch (error: any) {
+      console.error("Gemini API Error Details:", error);
+      
+      // Tratamento específico para erro de cota ou chave inválida
+      if (error.message?.includes("API_KEY") || error.message?.includes("403") || error.message?.includes("401")) {
+        throw new Error("Erro de Autenticação: A API_KEY é inválida ou não foi configurada corretamente na Vercel.");
+      }
+      
       throw error;
     }
   }
