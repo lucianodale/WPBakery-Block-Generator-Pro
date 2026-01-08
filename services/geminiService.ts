@@ -20,19 +20,22 @@ REGRAS:
 6. Mantenha responsividade e priorize parâmetros nativos.`;
 
 export class GeminiWPBakeryService {
-  private ai: GoogleGenAI;
-
-  constructor() {
-    // A API_KEY deve vir exclusivamente de process.env.API_KEY
-    if (!process.env.API_KEY) {
-      console.error("WPBakery Pro Error: API_KEY não encontrada nas variáveis de ambiente. Verifique as configurações na Vercel.");
-    }
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-
+  /**
+   * Generates a WPBakery block shortcode using Gemini AI.
+   * Note: The AI client is initialized locally within the method to ensure it uses the latest environment variables.
+   */
   async generateBlock(prompt: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []): Promise<string> {
+    const apiKey = process.env.API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("API_KEY não encontrada. Certifique-se de que a variável de ambiente foi configurada no painel da Vercel.");
+    }
+
+    // Initialize the SDK right before use
+    const ai = new GoogleGenAI({ apiKey });
+
     try {
-      const response: GenerateContentResponse = await this.ai.models.generateContent({
+      const response: GenerateContentResponse = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: [
             ...history.map(h => ({ role: h.role, parts: h.parts })),
@@ -49,8 +52,8 @@ export class GeminiWPBakeryService {
     } catch (error: any) {
       console.error("Gemini API Error Details:", error);
       
-      // Tratamento específico para erro de cota ou chave inválida
-      if (error.message?.includes("API_KEY") || error.message?.includes("403") || error.message?.includes("401")) {
+      // Standardize error messaging for common API issues
+      if (error.message?.includes("API_KEY") || error.message?.includes("403") || error.message?.includes("401") || error.message?.includes("missing")) {
         throw new Error("Erro de Autenticação: A API_KEY é inválida ou não foi configurada corretamente na Vercel.");
       }
       

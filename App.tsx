@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Code, 
   BookOpen, 
@@ -28,10 +28,10 @@ const App: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  const geminiRef = useRef<GeminiWPBakeryService | null>(null);
+  // We create the service as a constant; it will initialize the AI SDK only when generateBlock is called.
+  const geminiService = new GeminiWPBakeryService();
 
   useEffect(() => {
-    geminiRef.current = new GeminiWPBakeryService();
     const saved = localStorage.getItem('wpbakery_history');
     if (saved) {
       try {
@@ -53,7 +53,7 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    if (!input.trim() || !geminiRef.current) return;
+    if (!input.trim()) return;
 
     setIsGenerating(true);
     setErrorMsg(null);
@@ -66,7 +66,7 @@ const App: React.FC = () => {
         parts: [{ text: item.type === 'reference' ? `REFERÊNCIA:\n${item.content}` : item.response || '' }]
       }));
 
-      const result = await geminiRef.current.generateBlock(currentInput, apiHistory);
+      const result = await geminiService.generateBlock(currentInput, apiHistory);
       
       const newItem: HistoryItem = {
         id: Date.now().toString(),
@@ -79,10 +79,9 @@ const App: React.FC = () => {
       setHistory(prev => [newItem, ...prev]);
       setLastResponse(result);
     } catch (error: any) {
-      console.error(error);
+      console.error("Generation Error:", error);
       const msg = error.message || "Erro desconhecido ao processar requisição.";
       setErrorMsg(msg);
-      alert(msg + "\n\nVerifique o console para mais detalhes.");
     } finally {
       setIsGenerating(false);
     }
@@ -208,8 +207,9 @@ const App: React.FC = () => {
               <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
                 <div className="text-xs text-red-800">
-                  <strong className="block font-bold mb-1">Erro Crítico de API</strong>
-                  {errorMsg} - Certifique-se de que a variável <code>API_KEY</code> está configurada corretamente na Vercel.
+                  <strong className="block font-bold mb-1 text-red-900">Erro de Configuração</strong>
+                  <p className="mb-2">{errorMsg}</p>
+                  <p className="opacity-75">Dica: No dashboard da Vercel, acesse Settings > Environment Variables e adicione a chave <code>API_KEY</code>.</p>
                 </div>
               </div>
             )}
