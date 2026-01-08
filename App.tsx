@@ -28,7 +28,6 @@ const App: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // We create the service as a constant; it will initialize the AI SDK only when generateBlock is called.
   const geminiService = new GeminiWPBakeryService();
 
   useEffect(() => {
@@ -209,7 +208,9 @@ const App: React.FC = () => {
                 <div className="text-xs text-red-800">
                   <strong className="block font-bold mb-1 text-red-900">Erro de Configuração</strong>
                   <p className="mb-2">{errorMsg}</p>
-                  <p className="opacity-75">Dica: No dashboard da Vercel, acesse Settings > Environment Variables e adicione a chave <code>API_KEY</code>.</p>
+                  <p className="opacity-75">
+                    Dica: No dashboard da Vercel, acesse Settings &gt; Environment Variables e adicione a chave <code>API_KEY</code>.
+                  </p>
                 </div>
               </div>
             )}
